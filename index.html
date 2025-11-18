@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GitHub Hosted Audio Player</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 30px; 
+            background-color: #f4f4f9;
+        }
+        #player-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        #current-track-name {
+            display: block;
+            margin: 10px 0;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+        }
+        audio {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        button { 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        #shuffle-btn { background-color: #ff6347; color: white; }
+        #loop-btn { background-color: #4682b4; color: white; }
+        #next-btn { background-color: #3cb371; color: white; }
+        
+        button:hover { opacity: 0.8; }
+        button:active { opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <div id="player-container">
+        <h2>My Hosted Music</h2>
+        <span id="current-track-name">Loading...</span>
+        <audio id="audio-player" controls preload="auto"></audio>
+
+        <div class="controls">
+            <button id="shuffle-btn">Shuffle: OFF</button>
+            <button id="loop-btn">Loop: OFF</button>
+            <button id="next-btn">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('audio-player');
+        const shuffleBtn = document.getElementById('shuffle-btn');
+        const loopBtn = document.getElementById('loop-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const currentTrackName = document.getElementById('current-track-name');
+
+        // --- 1. CONFIGURE YOUR PLAYLIST HERE ---
+        // Assume MP3 files are in a folder named 'audio'
+        // Example path: https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/audio/track_name.mp3
+        const BASE_PATH = 'audio/'; 
+        
+        // **IMPORTANT:** List your filenames here exactly as they are in your repo.
+        let playlist = [
+            'my_song_one.mp3',
+            'another_track.mp3',
+            'favorite_jam.mp3',
+            'final_piece.mp3'
+        ];
+        
+        // --- PLAYER STATE ---
+        let originalPlaylist = [...playlist]; // Save the original order
+        let currentTrackIndex = 0;
+        let isShuffling = false;
+        let isLooping = false;
+
+        // --- CORE FUNCTIONS ---
+
+        function loadTrack(index) {
+            if (playlist.length === 0) return;
+            
+            currentTrackIndex = index;
+            const trackFilename = playlist[currentTrackIndex];
+            // Combine base path with filename for the full URL
+            audio.src = BASE_PATH + trackFilename; 
+            currentTrackName.textContent = trackFilename;
+            
+            audio.load();
+            audio.play().catch(e => {
+                // Handle autoplay block, common in browsers
+                console.log('Playback requires user interaction or was blocked:', e);
+            });
+        }
+
+        function playNextTrack() {
+            if (playlist.length === 0) return;
+            
+            const nextIndex = currentTrackIndex + 1;
+            
+            if (nextIndex < playlist.length) {
+                // Play the next track in the list
+                loadTrack(nextIndex);
+            } else if (isLooping) {
+                // If looping is on, go back to the first track (index 0)
+                loadTrack(0);
+            } else {
+                // If the end is reached and not looping, stop
+                audio.pause();
+                audio.currentTime = 0;
+                currentTrackName.textContent = playlist[currentTrackIndex] + ' (Playlist Finished)';
+            }
+        }
+
+        // --- SHUFFLE LOGIC ---
+
+        function shuffleArray(array) {
+            // Fisher-Yates shuffle
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        shuffleBtn.addEventListener('click', () => {
+            isShuffling = !isShuffling;
+            shuffleBtn.textContent = `Shuffle: ${isShuffling ? 'ON' : 'OFF'}`;
+            
+            const currentSourceFilename = playlist[currentTrackIndex];
+
+            if (isShuffling) {
+                // Shuffle the playlist array
+                shuffleArray(playlist);
+            } else {
+                // Revert to original order
+                playlist = [...originalPlaylist];
+            }
+            
+            // Find the index of the track that was *just* playing in the new (shuffled or un-shuffled) list
+            currentTrackIndex = playlist.indexOf(currentSourceFilename);
+
+            // If the player was playing, continue playing from the same track, but from the new index
+            if (!audio.paused) {
+                loadTrack(currentTrackIndex);
+            } else {
+                // Just update the display to show the current track name in the new context
+                currentTrackName.textContent = playlist[currentTrackIndex];
+            }
+        });
+
+        // --- LOOP LOGIC ---
+
+        loopBtn.addEventListener('click', () => {
+            isLooping = !isLooping;
+            loopBtn.textContent = `Loop: ${isLooping ? 'ON' : 'OFF'}`;
+            // The logic for playlist looping is handled in playNextTrack()
+        });
+
+        // --- EVENT LISTENERS ---
+
+        nextBtn.addEventListener('click', () => {
+            playNextTrack();
+        });
+
+        audio.addEventListener('ended', () => {
+            playNextTrack();
+        });
+
+        // --- INITIALIZATION ---
+        if (playlist.length > 0) {
+            loadTrack(0);
+        } else {
+            currentTrackName.textContent = 'Playlist is empty. Please check the "playlist" array.';
+        }
+    </script>
+</body>
+</html>
