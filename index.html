@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <title>GitHub Hosted Audio Player</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
-
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -82,8 +80,8 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             text-align: left;
-            /* >>>>>>>>>>> TEMPORARY DEBUG CHANGE <<<<<<<<< */
-            display: block !important; /* FORCED VISIBILITY */
+            /* Playlist is hidden by default, use JS toggle */
+            display: none; 
         }
         #playlist-list li {
             padding: 10px;
@@ -120,8 +118,6 @@
     </div>
 
     <script>
-        const jsmediatags = window.jsmediatags; 
-
         const audio = document.getElementById('audio-player');
         const shuffleBtn = document.getElementById('shuffle-btn');
         const loopBtn = document.getElementById('loop-btn');
@@ -135,21 +131,23 @@
         const BASE_PATH = 'audio/'; 
         const PLACEHOLDER_URL = 'https://play-lh.googleusercontent.com/CQri0N-BiyrACHpHPPtITg3TMV5-bZNbAuhjrg-Zpc_mw6tIWZJFPmT8Yr5r4R-xbA'; 
         
+        // **RESTORED PLAYLIST STRUCTURE** (Requires manual image path/name)
         let rawPlaylist = [
-            { track: 'Bloxxin\' What\'s Not Yours.mp3' },
-            { track: 'Juice WRLD - Empty Out Your Pockets (Official Fortnite Video) 4.mp3' },
-            { track: 'Juice WRLD - Lucid Dreams (Official Music Video) 4.mp3' },
-            { track: 'Marmalade Dream (BOKSED Edit).mp3' },
-            { track: 'SODA STREET.mp3' },
-            { track: 'Stay with me remix.mp3' },
-            { track: 'Stay with me remix sped up.mp3' },
-            { track: 'boksed - Grew.mp3' },
-            { track: 'boxed - skull fairy.mp3' },
-            { track: 'caffeine rush.mp3' },
-            { track: 'dokodemohitori.wav.mp3' },
-            { track: 'look! a turtle.. nevermind..mp3' },
-            { track: 'myinternetlife.mp3.mp3' },
-            { track: 'nostalgiaisntreal.wav.mp3' }
+            // REPLACE 'IMAGE_FILENAME_HERE.png' with your actual image filename, or '' if none
+            { track: 'Bloxxin\' What\'s Not Yours.mp3', image: 'Bloxxin_Art.png' }, 
+            { track: 'Juice WRLD - Empty Out Your Pockets (Official Fortnite Video) 4.mp3', image: '' },
+            { track: 'Juice WRLD - Lucid Dreams (Official Music Video) 4.mp3', image: '' },
+            { track: 'Marmalade Dream (BOKSED Edit).mp3', image: 'Marmalade_Art.jpg' },
+            { track: 'SODA STREET.mp3', image: '' },
+            { track: 'Stay with me remix.mp3', image: '' },
+            { track: 'Stay with me remix sped up.mp3', image: 'Stay_Art.jpeg' },
+            { track: 'boksed - Grew.mp3', image: '' },
+            { track: 'boxed - skull fairy.mp3', image: 'Skull_Art.png' },
+            { track: 'caffeine rush.mp3', image: '' },
+            { track: 'dokodemohitori.wav.mp3', image: '' },
+            { track: 'look! a turtle.. nevermind..mp3', image: '' },
+            { track: 'myinternetlife.mp3.mp3', image: '' },
+            { track: 'nostalgiaisntreal.wav.mp3', image: '' }
         ];
 
         // --- PLAYER STATE ---
@@ -174,7 +172,6 @@
                 
                 li.addEventListener('click', () => {
                     loadTrack(index);
-                    // Keep the playlist visible if the screen is large
                     if (window.innerWidth <= 600) { 
                          playlistList.style.display = 'none';
                          playlistButton.textContent = 'Show Playlist';
@@ -185,45 +182,23 @@
             });
         }
 
-        function setAlbumArtFromID3(url) {
-            albumArt.src = PLACEHOLDER_URL; // Set placeholder immediately while loading
-            
-            // NOTE: If this console log doesn't show the correct file URL, the BASE_PATH is wrong.
-            console.log("Attempting to read ID3 from:", url); 
-
-            jsmediatags.read(url, {
-                onSuccess: function(tag) {
-                    const tags = tag.tags;
-                    if (tags.picture) {
-                        const base64String = tags.picture.data.map(byte => String.fromCharCode(byte)).join('');
-                        const mimeType = tags.picture.format;
-                        // Create a data URL from the binary image data
-                        albumArt.src = `data:${mimeType};base64,${btoa(base64String)}`;
-                    } else {
-                        albumArt.src = PLACEHOLDER_URL;
-                    }
-                },
-                onError: function(error) {
-                    console.error("Error reading ID3 tags (Likely file access issue):", error);
-                    albumArt.src = PLACEHOLDER_URL;
-                }
-            });
-        }
-
         function loadTrack(index) {
             if (playlist.length === 0) return;
             
             currentTrackIndex = index;
             const currentItem = playlist[currentTrackIndex];
-            const trackURL = BASE_PATH + currentItem.track;
             
             // 1. Set Audio Source
-            audio.src = trackURL; 
+            audio.src = BASE_PATH + currentItem.track; 
             currentTrackName.textContent = currentItem.track;
             
-            // 2. Set Album Art 
-            setAlbumArtFromID3(trackURL);
-            
+            // 2. Set Album Art (using manual path)
+            if (currentItem.image && currentItem.image !== '') {
+                albumArt.src = BASE_PATH + currentItem.image;
+            } else {
+                albumArt.src = PLACEHOLDER_URL;
+            }
+
             // 3. Update UI
             renderPlaylist(); 
             
@@ -250,7 +225,7 @@
             }
         }
 
-        // --- SHUFFLE LOGIC (omitted for brevity, assume correct) ---
+        // --- SHUFFLE LOGIC ---
 
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -281,7 +256,6 @@
             }
         });
 
-
         // --- LOOP, NEXT, & EVENTS LOGIC ---
 
         loopBtn.addEventListener('click', () => {
@@ -299,10 +273,7 @@
 
         playlistButton.addEventListener('click', () => {
             const isVisible = playlistList.style.display !== 'none';
-            // >>>>>>>>>>> DEBUG CHANGE <<<<<<<<<
-            // Revert the temporary display change after debugging if needed
-            // playlistList.style.display = isVisible ? 'none' : 'block';
-            playlistList.style.display = 'block'; // Keep it simple for now
+            playlistList.style.display = isVisible ? 'none' : 'block';
             playlistButton.textContent = isVisible ? 'Show Playlist' : 'Hide Playlist';
         });
 
